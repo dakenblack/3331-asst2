@@ -23,6 +23,10 @@
 //#######################################
 // Custom Type Definition
 //#######################################
+struct packet {
+    char from;
+    unsigned char byte; 
+}
 
 //#######################################
 // Basic Type Serialisation
@@ -60,6 +64,16 @@ char* serialize_string(char* buf, char* a, int size) {
     return buf;
 }
 
+char* serialize_char(char* buf, char a) {
+    *buf = a;
+    return buf+1;
+}
+
+char* serialize_uchar(char* buf, unsigned char a) {
+    *buf = (char)a;
+    return buf+1;
+}
+
 char* deserialize_int(char* buf,int* a) {
     char* p = (char*)a;
     for(int i=0;i<SIZE_INT;i++,p++,buf++)
@@ -93,9 +107,30 @@ char* deserialize_string(char* buf, char* a, int size) {
     return buf;
 }
 
+char* deserialize_char(char* buf, char* a) {
+    *a = *buf;
+    return buf+1;
+}
+
+char* deserialize_uchar(char* buf, unsigned char* a) {
+    *a = (unsigned char)*buf;
+    return buf+1;
+}
+
 //#######################################
 // Custom Type Serialisation
 //#######################################
 
+char* serialize_packet(char* buf, struct packet a) {
+    buf = serialize_char(a.from);
+    buf = serialize_uchar(a.byte);
+    return buf;
+}
+
+char* deserialize_packet(char* buf, struct packet *a) {
+    buf = deserialize_char(&(a->from));
+    buf = deserialize_uchar(&(a->byte));
+    return buf;
+}
 
 #endif

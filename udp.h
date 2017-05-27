@@ -44,3 +44,18 @@ int initialise_listener(int listenport) {
  * sendto(clientSocket,buffer,nBytes,MSG_NOSIGNAL,(struct sockaddr*)&addr,(socklen_t)sizeof(addr));
  *
  */
+
+/**
+ * @returns -1: error, 0: timeout, 1: fd is ready
+ */
+int isSocketReady(int fd,int usec) {
+    struct timeval tv;
+    fd_set f_set;
+
+    FD_ZERO(&f_set);
+    FD_SET(fd, &f_set);
+    tv.tv_sec = 0;
+    tv.tv_usec = usec;
+    return select(fd+1, &f_set, NULL, NULL, &tv);
+}
+

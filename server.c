@@ -19,9 +19,6 @@ int main(){
         return -1;
     }
 
-    /*Initialize size variable to be used later on*/
-    addr_size = sizeof serverStorage;
-
     while(1){
         nBytes = recvfrom(udpSocket,buffer,1024,0,NULL, NULL);
 
