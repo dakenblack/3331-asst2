@@ -26,7 +26,7 @@
 struct packet {
     char from;
     unsigned char byte; 
-}
+};
 
 //#######################################
 // Basic Type Serialisation
@@ -122,14 +122,14 @@ char* deserialize_uchar(char* buf, unsigned char* a) {
 //#######################################
 
 char* serialize_packet(char* buf, struct packet a) {
-    buf = serialize_char(a.from);
-    buf = serialize_uchar(a.byte);
+    buf = serialize_char(buf,a.from);
+    buf = serialize_uchar(buf,a.byte);
     return buf;
 }
 
 char* deserialize_packet(char* buf, struct packet *a) {
-    buf = deserialize_char(&(a->from));
-    buf = deserialize_uchar(&(a->byte));
+    buf = deserialize_char(buf,&(a->from));
+    buf = deserialize_uchar(buf,&(a->byte));
     return buf;
 }
 
