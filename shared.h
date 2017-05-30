@@ -25,7 +25,8 @@
 //#######################################
 struct packet {
     char from;
-    unsigned char byte; 
+    char to; 
+    unsigned short cost;
 };
 
 //#######################################
@@ -123,13 +124,15 @@ char* deserialize_uchar(char* buf, unsigned char* a) {
 
 char* serialize_packet(char* buf, struct packet a) {
     buf = serialize_char(buf,a.from);
-    buf = serialize_uchar(buf,a.byte);
+    buf = serialize_char(buf,a.to);
+    buf = serialize_ushort(buf,a.cost);
     return buf;
 }
 
 char* deserialize_packet(char* buf, struct packet *a) {
     buf = deserialize_char(buf,&(a->from));
-    buf = deserialize_uchar(buf,&(a->byte));
+    buf = deserialize_char(buf,&(a->to));
+    buf = deserialize_ushort(buf,&(a->cost));
     return buf;
 }
 

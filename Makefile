@@ -8,8 +8,8 @@ all: client server Dvr
 %.o: %.c $(DEPS)
 	$(CC) -c $(CFLAGS) -o $@ $< 
 
-Dvr: Dvr.o
-	$(CC) $(OFLAGS) -o $@ $< 
+Dvr: Dvr.o distance_vector.o
+	$(CC) $(OFLAGS) -o $@ Dvr.o distance_vector.o
 
 client: client.o
 	$(CC) $(OFLAGS) -o $@ $< 
