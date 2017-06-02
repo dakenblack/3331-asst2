@@ -1,4 +1,3 @@
-#include <stdio.h>
 #include <string.h>
 #include <stdlib.h>
 #include <signal.h>
@@ -20,6 +19,7 @@ struct neighbor {
     int port;
     int cost;
     struct sockaddr_in addr;
+    int heartbeat_count;
 };
 
 static struct neighbor *known_neighbors = NULL;
@@ -54,6 +54,15 @@ void intHandler(int a) {
     exit(0);
 }
 
+//gets pointer to neighbor element, NULL if no neighbor
+static struct neighbor* NBR_get(char id) {
+    for(int i=0; i<num_known; i++) {
+        if(known_neighbors[i].id == id) 
+            return &known_neighbors[i];
+    }
+    return NULL;
+}
+
 //listen for new messages
 void* listener_thread(void * ignore) {
     int retval;
@@ -64,7 +73,7 @@ void* listener_thread(void * ignore) {
         pthread_mutex_lock(&socket_mutex);
         retval = isSocketReady(_socket,500000);
         if(retval > 0) {
-
+            //socket is ready
             retval = read(_socket,buf,1024);
             if(retval == 0) {
                 printf("[listener] number of bytes read was 0??\n");
@@ -77,15 +86,31 @@ void* listener_thread(void * ignore) {
             char *p = buf;
             struct packet temp;
 
-            while(retval >= sizeof(struct packet)) {
+            //for each packet in the message
+            int sizeRemaining = retval;
+            while(sizeRemaining >= sizeof(struct packet)) {
                 p = deserialize_packet(p,&temp);
-                retval -= sizeof(struct packet);
-                printf("%c -> %c : %u\n",temp.from,temp.to,temp.cost);
+                sizeRemaining -= sizeof(struct packet);
+
+                #ifdef DEBUG
+                /*printf("%c -> %c : %u\n",temp.from,temp.to,temp.cost);*/
+                #endif
+
+                //if the message is from this user skip
                 if(temp.to == _id)
                     continue;
+                
+                struct neighbor* ptr = NBR_get(temp.from);
+                if(ptr == NULL) {
+                #ifdef DEBUG
+                printf("from %c, not in known neighbors\n",temp.from);
+                #endif
+                } else {
+                    ptr->heartbeat_count = -1;
+                }
+
 
                 if(DV_update2(_dv,temp.from,temp.to,temp.cost) > 0) {
-                    /*printf("<hit>\n");*/
                     updatedFlag = 1;
                 } else {
                 }
@@ -100,17 +125,24 @@ void* listener_thread(void * ignore) {
         }
 
         pthread_mutex_unlock(&socket_mutex);
+        for(int i=0; i<num_known; i++) {
+            known_neighbors[i].heartbeat_count ++;
+            if(known_neighbors[i].heartbeat_count > 40) {
+                #ifdef DEBUG
+                printf("Node %c gone offline\n",known_neighbors[i].id);
+                #endif
+                known_neighbors[i].heartbeat_count = -1;
+            }
+        }
 
         if(!updatedFlag) {
             lastUpdated ++;
-            /*printf("+ <%d>\n",lastUpdated);*/
             if(lastUpdated > 40) {
                 print_ascending();
-                usleep(8000000);
+                /*usleep(8000000);*/
                 lastUpdated = 0;
             }
         } else {
-            /*printf("- <%d>\n",lastUpdated);*/
             lastUpdated = 0;
         }
         //give a chance for other threads to play
@@ -184,6 +216,7 @@ int main(int argc, char* argv[]) {
         known_neighbors[i].port = n_port;
         known_neighbors[i].cost = n_weight;
         known_neighbors[i].addr = getAddr(n_port);
+        known_neighbors[i].heartbeat_count = 0;
 
         //add to the DV
         DV_update(_dv,n_id,(unsigned short)n_weight);
@@ -204,6 +237,7 @@ int main(int argc, char* argv[]) {
     return 1;
 }
 
+//used for sorting
 struct temp_node {
     char to;
     unsigned short cost;
