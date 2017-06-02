@@ -17,4 +17,5 @@ int DV_update2(DV d, char from, char to, unsigned short cost);
 int DV_size(DV d);
 void DV_get(DV d, int id, char* from, char* next, unsigned short *cost);
 void DV_destroy(DV d);
+void DV_remove(DV d, char id);
 #endif

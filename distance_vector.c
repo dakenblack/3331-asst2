@@ -1,6 +1,7 @@
 #include "distance_vector.h"
 #include <assert.h>
 #include <stdlib.h>
+#include <stdio.h>
 
 /**
  * Everything is poorly named
@@ -16,7 +17,6 @@ struct node {
 
 struct linkedList {
     struct node* start;
-    struct node** end_ptr;
     unsigned short size;
 };
 
@@ -26,6 +26,7 @@ struct linkedList {
 static struct node* LL_get(struct linkedList* ll, int id) {
     struct node* ptr = ll->start;
     int i=0;
+    assert(id < ll->size);
     while(ptr != NULL) {
         if(i>=id)
             break;
@@ -40,17 +41,18 @@ DV DV_create() {
     struct linkedList* ret = malloc(sizeof(struct linkedList));
     ret->start = NULL;
     ret->size = 0;
-    ret->end_ptr = &(ret->start);
     return (DV)ret;
 }
 
 int DV_update(DV d, char from, char next, unsigned short cost) {
     struct linkedList* ll = (struct linkedList*)d;
     struct node* ptr = ll->start;
+    struct node* back = NULL;
 
     while(ptr != NULL) {
         if(ptr->from == from)
             break;
+        back = ptr;
         ptr = ptr->link;
     }
 
@@ -62,8 +64,14 @@ int DV_update(DV d, char from, char next, unsigned short cost) {
         new_node->from = from;
         new_node->cost = cost;
         new_node->next = next;
-        *(ll->end_ptr) = new_node;
-        ll->end_ptr = &(new_node->link);
+        new_node->link = NULL;
+
+        if(back != NULL) {
+            back->link = new_node;
+        } else {
+            ll->start = new_node;
+        }
+
         ll->size = ll->size + 1;
     } else {
         if(ptr->cost > cost) {
@@ -71,7 +79,12 @@ int DV_update(DV d, char from, char next, unsigned short cost) {
             ptr->cost = cost;
             ptr->next = next;
         } else {
-            ret = 0;
+            //if the next node transmitted a new cost, update anyway
+            if(ptr->next == next) {
+                /*ptr->cost = cost;*/
+            } else {
+                ret = 0;
+            }
         }
     }
 
@@ -113,6 +126,7 @@ int DV_update2(DV d, char from, char to, unsigned short cost) {
     struct node* ptr = ll->start;
 
     while(ptr != NULL) {
+        //the from attribute is poorly named
         if(ptr->from == from)
             break;
         ptr = ptr->link;
@@ -123,6 +137,32 @@ int DV_update2(DV d, char from, char to, unsigned short cost) {
         //nothing can be done
         return -1;
     } else {
-        return DV_update(d,to,from,cost + ptr->cost);
+        /*printf("%c<%u>%c + %c<%u>%c\n",ptr->next,ptr->cost,ptr->from,from,cost,to);*/
+        return DV_update(d,to,ptr->next,cost + ptr->cost);
+    }
+}
+
+void DV_remove(DV d, char id) {
+    struct linkedList* ll = (struct linkedList*)d;
+    struct node* ptr = ll->start;
+    struct node* back = NULL;
+
+    while(ptr != NULL) {
+        if(ptr->next == id || ptr->from == id) {
+            struct node* temp = ptr;
+            if(back != NULL) {
+                back->link = ptr->link;
+            } else {
+                ll->start = ptr->link;
+            }
+
+            ptr = ptr->link;
+
+            free(temp);
+            ll->size = ll->size - 1;
+        } else {
+            back = ptr;
+            ptr = ptr->link;
+        }
     }
 }

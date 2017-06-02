@@ -12,7 +12,7 @@
 #include "distance_vector.h"
 
 //remove this before submitting
-#define DEBUG
+/*#define DEBUG*/
 
 struct neighbor {
     char id;
@@ -94,7 +94,7 @@ void* listener_thread(void * ignore) {
                 sizeRemaining -= sizeof(struct packet);
 
                 #ifdef DEBUG
-                /*printf("%c -> %c : %u\n",temp.from,temp.to,temp.cost);*/
+                printf("%c -> %c : %u\n",temp.from,temp.to,temp.cost);
                 #endif
 
                 //if the message is from this user skip
@@ -132,7 +132,8 @@ void* listener_thread(void * ignore) {
                 #ifdef DEBUG
                 printf("Node %c gone offline\n",known_neighbors[i].id);
                 #endif
-                known_neighbors[i].heartbeat_count = -1;
+                DV_remove(_dv, known_neighbors[i].id);
+                known_neighbors[i].heartbeat_count = 20;
             }
         }
 
