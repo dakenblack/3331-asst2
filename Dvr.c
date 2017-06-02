@@ -131,7 +131,6 @@ void* listener_thread(void * ignore) {
 
 
                 if(DV_update2(_dv,temp.from,temp.to,temp.cost) > 0) {
-                    printf("<<hit>>\n");
                     updatedFlag = 1;
                 } else {
                 }
