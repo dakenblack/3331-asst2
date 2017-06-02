@@ -12,7 +12,7 @@
 #include "distance_vector.h"
 
 //remove this before submitting
-#define DEBUG
+/*#define DEBUG*/
 
 struct neighbor {
     char id;

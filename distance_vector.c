@@ -59,7 +59,6 @@ int DV_update(DV d, char from, char next, unsigned short cost) {
     int ret = 0;
     if(ptr == NULL) {
         //new node
-        printf("2\n");
         ret = 2;
         struct node* new_node = malloc(sizeof(struct node));
         new_node->from = from;
@@ -76,7 +75,6 @@ int DV_update(DV d, char from, char next, unsigned short cost) {
         ll->size = ll->size + 1;
     } else {
         if(ptr->cost > cost) {
-            printf("1\n");
             ret = 1;
             ptr->cost = cost;
             ptr->next = next;
