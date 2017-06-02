@@ -34,6 +34,7 @@ static void print_ascending();
 
 /**
  * signal handler for SIGINT
+ * basically the destructor of the application
  */
 void intHandler(int a) {
     if(known_neighbors != NULL) {
@@ -163,7 +164,7 @@ void* sender_thread(void * ignore) {
         for(int i=0;i<num_known;i++) {
             int j = DV_size(_dv)-1;
             for(;j>=0;j--) {
-                DV_get(_dv,j,&(toSend.to),&(toSend.cost));
+                DV_get(_dv,j,&(toSend.to),NULL,&(toSend.cost));
                 serialize_packet(buf,toSend);
                 sendto(_socket,buf,sizeof(struct packet),MSG_NOSIGNAL,(struct sockaddr*)&(known_neighbors[i].addr),(socklen_t)sizeof(known_neighbors[i].addr));
             }
@@ -219,7 +220,7 @@ int main(int argc, char* argv[]) {
         known_neighbors[i].heartbeat_count = 0;
 
         //add to the DV
-        DV_update(_dv,n_id,(unsigned short)n_weight);
+        DV_update(_dv,n_id,n_id,(unsigned short)n_weight);
     }
 
     fclose(fd);
@@ -240,6 +241,7 @@ int main(int argc, char* argv[]) {
 //used for sorting
 struct temp_node {
     char to;
+    char next;
     unsigned short cost;
 };
 
@@ -249,8 +251,10 @@ static void print_ascending() {
     for(int i=0;i<size;i++) {
         char to;
         unsigned short cost;
-        DV_get(_dv,i,&to,&cost);
+        char next;
+        DV_get(_dv,i,&to,&next,&cost);
 
+        //sorted insert
         int j;
         for(j=i; j>=1; j--) {
             if(sorted[j-1].to < to)
@@ -259,9 +263,10 @@ static void print_ascending() {
         }
         sorted[j].to = to;
         sorted[j].cost = cost;
+        sorted[j].next = next;
     }
     for(int i=0;i<size;i++) {
-        printf("shortest path to node %c: the next hop is %c and the cost is %u\n",sorted[i].to, 'n',sorted[i].cost);
+        printf("shortest path to node %c: the next hop is %c and the cost is %u\n",sorted[i].to, sorted[i].next ,sorted[i].cost);
     }
     free(sorted);
 }

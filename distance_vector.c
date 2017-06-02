@@ -9,6 +9,7 @@
 
 struct node {
     char from; //should be to
+    char next; //next jump
     unsigned short cost;
     struct node* link;
 };
@@ -43,7 +44,7 @@ DV DV_create() {
     return (DV)ret;
 }
 
-int DV_update(DV d, char from, unsigned short cost) {
+int DV_update(DV d, char from, char next, unsigned short cost) {
     struct linkedList* ll = (struct linkedList*)d;
     struct node* ptr = ll->start;
 
@@ -55,10 +56,12 @@ int DV_update(DV d, char from, unsigned short cost) {
 
     int ret = 0;
     if(ptr == NULL) {
+        //new node
         ret = 2;
         struct node* new_node = malloc(sizeof(struct node));
         new_node->from = from;
         new_node->cost = cost;
+        new_node->next = next;
         *(ll->end_ptr) = new_node;
         ll->end_ptr = &(new_node->link);
         ll->size = ll->size + 1;
@@ -66,6 +69,7 @@ int DV_update(DV d, char from, unsigned short cost) {
         if(ptr->cost > cost) {
             ret = 1;
             ptr->cost = cost;
+            ptr->next = next;
         } else {
             ret = 0;
         }
@@ -78,7 +82,7 @@ int DV_size(DV d) {
     return ((struct linkedList*)d)->size;
 }
 
-void DV_get(DV d, int id, char* from, unsigned short *cost) {
+void DV_get(DV d, int id, char* from ,char* next, unsigned short *cost) {
     struct linkedList* ll = (struct linkedList*)d;
     if( id >= ll->size || id < 0) {
         *from = '\0';
@@ -88,6 +92,8 @@ void DV_get(DV d, int id, char* from, unsigned short *cost) {
     struct node* n = LL_get(ll,id);
     *from = n->from;
     *cost = n->cost;
+    if(next != NULL)
+        *next = n->next;
 }
 
 void DV_destroy(DV d) {
@@ -117,6 +123,6 @@ int DV_update2(DV d, char from, char to, unsigned short cost) {
         //nothing can be done
         return -1;
     } else {
-        return DV_update(d,to,cost + ptr->cost);
+        return DV_update(d,to,from,cost + ptr->cost);
     }
 }
