@@ -1,7 +1,10 @@
 #ifndef DISTANCE_VECTOR_H
 #define DISTANCE_VECTOR_H
 
+//distance vector machine
 typedef void* DV;
+//blacklist
+typedef void* BL;
 
 DV DV_create();
 /**
@@ -18,4 +21,11 @@ int DV_size(DV d);
 void DV_get(DV d, int id, char* from, char* next, unsigned short *cost);
 void DV_destroy(DV d);
 void DV_remove(DV d, char id);
+
+BL BL_create();
+void BL_add(BL b, char id);
+//make sure to free this list
+char* BL_items(BL b, int* size);
+void BL_destroy(BL b);
+
 #endif

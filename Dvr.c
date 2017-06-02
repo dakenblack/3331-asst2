@@ -12,7 +12,7 @@
 #include "distance_vector.h"
 
 //remove this before submitting
-/*#define DEBUG*/
+#define DEBUG
 
 struct neighbor {
     char id;
@@ -29,6 +29,7 @@ static pthread_mutex_t socket_mutex;
 static int _socket;
 static char _id;
 static DV _dv = NULL;
+static BL _bl = NULL;
 
 static void print_ascending();
 
@@ -49,6 +50,9 @@ void intHandler(int a) {
     printf(" cleaning up distance vector table\n");
     if(_dv != NULL)
         DV_destroy(_dv);
+
+    if(_bl != NULL)
+        BL_destroy(_bl);
 
     printf(" Quiting now...\n");
     /*usleep(1000000);*/
@@ -94,12 +98,27 @@ void* listener_thread(void * ignore) {
                 sizeRemaining -= sizeof(struct packet);
 
                 #ifdef DEBUG
-                printf("%c -> %c : %u\n",temp.from,temp.to,temp.cost);
+                printf("%c -> %c : %d\n",temp.from,temp.to,temp.cost);
                 #endif
 
                 //if the message is from this user skip
                 if(temp.to == _id)
                     continue;
+
+                if(temp.cost < 0) {
+                    DV_remove(_dv,temp.to);
+                    /*to get the new values;*/
+                    /*DV_remove(_dv,temp.from);*/
+                    /*struct neighbor* ptr = NBR_get(temp.from);*/
+                    /*assert(ptr != NULL);*/
+                    /*DV_update(_dv,ptr->id,ptr->id,ptr->cost);*/
+                    #ifdef DEBUG
+                    /*printf("Node %c has died\n",temp.to);*/
+                    #endif
+                    //system was updated
+                    updatedFlag = 0;
+                    continue;
+                }
                 
                 struct neighbor* ptr = NBR_get(temp.from);
                 if(ptr == NULL) {
@@ -112,6 +131,7 @@ void* listener_thread(void * ignore) {
 
 
                 if(DV_update2(_dv,temp.from,temp.to,temp.cost) > 0) {
+                    printf("<<hit>>\n");
                     updatedFlag = 1;
                 } else {
                 }
@@ -128,18 +148,20 @@ void* listener_thread(void * ignore) {
         pthread_mutex_unlock(&socket_mutex);
         for(int i=0; i<num_known; i++) {
             known_neighbors[i].heartbeat_count ++;
-            if(known_neighbors[i].heartbeat_count > 40) {
+            if(known_neighbors[i].heartbeat_count > 60) {
                 #ifdef DEBUG
                 printf("Node %c gone offline\n",known_neighbors[i].id);
                 #endif
+                BL_add(_bl,known_neighbors[i].id);
                 DV_remove(_dv, known_neighbors[i].id);
-                known_neighbors[i].heartbeat_count = 20;
+                known_neighbors[i].heartbeat_count = -10000;
             }
         }
 
         if(!updatedFlag) {
             lastUpdated ++;
-            if(lastUpdated > 40) {
+            /*printf("<hit> %d\n",lastUpdated);*/
+            if(lastUpdated > 50) {
                 print_ascending();
                 /*usleep(8000000);*/
                 lastUpdated = 0;
@@ -161,13 +183,28 @@ void* sender_thread(void * ignore) {
         pthread_mutex_lock(&socket_mutex);
 
         struct packet toSend;
-        toSend.from = _id;
         for(int i=0;i<num_known;i++) {
+            toSend.from = _id;
             int j = DV_size(_dv)-1;
             for(;j>=0;j--) {
-                DV_get(_dv,j,&(toSend.to),NULL,&(toSend.cost));
+                unsigned short temp_ushort;
+                DV_get(_dv,j,&(toSend.to),NULL,&temp_ushort);
+                assert(temp_ushort >= 0);
+                toSend.cost = (int)temp_ushort;
                 serialize_packet(buf,toSend);
                 sendto(_socket,buf,sizeof(struct packet),MSG_NOSIGNAL,(struct sockaddr*)&(known_neighbors[i].addr),(socklen_t)sizeof(known_neighbors[i].addr));
+            }
+
+            char* blcked = BL_items(_bl,&j);
+            if(j != 0) {
+                j--;
+                for(;j>=0;j--) {
+                    toSend.cost = -1;
+                    toSend.to = blcked[j];
+                    serialize_packet(buf,toSend);
+                    sendto(_socket,buf,sizeof(struct packet),MSG_NOSIGNAL,(struct sockaddr*)&(known_neighbors[i].addr),(socklen_t)sizeof(known_neighbors[i].addr));
+                }
+                free(blcked);
             }
         }
         pthread_mutex_unlock(&socket_mutex);
@@ -197,6 +234,8 @@ int main(int argc, char* argv[]) {
 
     //initialize the DV
     _dv = DV_create();
+    //initializing the blacklist
+    _bl = BL_create();
 
     //getting known neighbors
     char buf[64];
@@ -254,6 +293,7 @@ static void print_ascending() {
         unsigned short cost;
         char next;
         DV_get(_dv,i,&to,&next,&cost);
+
 
         //sorted insert
         int j;

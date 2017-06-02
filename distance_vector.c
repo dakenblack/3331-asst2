@@ -59,6 +59,7 @@ int DV_update(DV d, char from, char next, unsigned short cost) {
     int ret = 0;
     if(ptr == NULL) {
         //new node
+        printf("2\n");
         ret = 2;
         struct node* new_node = malloc(sizeof(struct node));
         new_node->from = from;
@@ -75,16 +76,12 @@ int DV_update(DV d, char from, char next, unsigned short cost) {
         ll->size = ll->size + 1;
     } else {
         if(ptr->cost > cost) {
+            printf("1\n");
             ret = 1;
             ptr->cost = cost;
             ptr->next = next;
         } else {
-            //if the next node transmitted a new cost, update anyway
-            if(ptr->next == next) {
-                /*ptr->cost = cost;*/
-            } else {
-                ret = 0;
-            }
+            ret = 0;
         }
     }
 
@@ -165,4 +162,68 @@ void DV_remove(DV d, char id) {
             ptr = ptr->link;
         }
     }
+}
+
+struct bl_node {
+    char id;
+    struct bl_node* link;
+};
+
+struct bl_list {
+    int size;
+    struct bl_node* start;
+};
+
+BL BL_create() {
+    struct bl_list* ret = malloc(sizeof(struct bl_list));
+    ret->size = 0;
+    ret->start = NULL;
+    return (BL)ret;
+}
+void BL_add(BL b, char id) {
+    struct bl_list* l = (struct bl_list*)b;
+    struct bl_node* ptr = l->start;
+    struct bl_node* back = NULL;
+    while(ptr != NULL) {
+        if(ptr->id == id)
+            return;
+        back = ptr;
+        ptr = ptr->link;
+    }
+    struct bl_node* new_node = malloc(sizeof(struct bl_node));
+    new_node->link = NULL;
+    new_node->id = id;
+    if(back == NULL) {
+        l->start = new_node;
+    } else {
+        back->link = new_node;
+    }
+    l->size = l->size + 1;
+}
+//make sure to free this list
+char* BL_items(BL b, int* size) {
+    struct bl_list* l = (struct bl_list*)b;
+    *size = l->size;
+    if(l->size == 0)
+        return NULL;
+
+    char* ret = malloc(sizeof(char)*l->size);
+    char* p = ret;
+    struct bl_node* ptr = l->start;
+    while(ptr != NULL) {
+        *p = ptr->id;
+        p++;
+        ptr = ptr->link;
+    }
+    return ret;
+}
+void BL_destroy(BL b) {
+    struct bl_list* l = (struct bl_list*)b;
+    struct bl_node* ptr = l->start;
+    while(ptr != NULL) {
+        struct bl_node* temp = ptr;
+        ptr = ptr->link;
+        free(temp);
+    }
+    free(l);
 }
